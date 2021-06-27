@@ -1,0 +1,77 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment
+
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+## Prediction
+
+We will predict the variable "Classe" which represents a gym exercise with 5 different outputs: 
+Class A - According to the specification <- Correct execution
+Class B - Throwing the elbows to the front <- Common mistake
+Class c - Lifting the dumbbell only halfway <- Common mistake
+Class D - Lowering the dumbbell only halfway <- Common mistake
+Class E - Throwing the hips to the front <- Common mistake
+
+## Resolution Approach
+We will create a model with a decision tree and perform cross-validation. We will create two sets: original training data set (75%) and cross validation data set (25%).
+
+```{r}
+# Load datasets
+trainSet <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"), na.strings = c("NA", "#DIV/0!", ""))
+testSet <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"), na.strings = c("NA", "#DIV/0!", ""))
+
+# Remove unused stuff
+trainSet <- trainSet[, colSums(is.na(trainSet)) == 0]
+trainSet <- trainSet[, -c(1:7)]
+testSet <- testSet[, colSums(is.na(testSet)) == 0]
+testSet <- testSet[, -c(1:7)]
+
+# Create cross validation set
+library(caret)
+
+crossSet <- createDataPartition(trainSet$classe,  p = 0.75, list = F)
+trainSetFinal <- trainSet[crossSet, ]
+crossSetFinal <- trainSet[-crossSet, ]
+```
+
+## Decision Tree
+
+```{r}
+library(rpart)
+
+dtModel <- rpart(classe ~ ., data = trainSetFinal, method = "class")
+dtPred <- predict(dtModel, crossSetFinal, type = "class")
+
+confusionMatrix(dtPred, as.factor(crossSetFinal$classe))
+```
+
+## Random Forest
+
+```{r}
+library(randomForest)
+
+rfModel <- randomForest(factor(classe) ~. , data = trainSetFinal, method = "class")
+rfPred <- predict(rfModel, crossSetFinal, type = "class")
+
+confusionMatrix(rfPred, as.factor(crossSetFinal$classe))
+```
+
+## Selected Option
+
+We pick Random Forest approach because it shows better accuracy (99% vs 74%) and the actual Kappa values (99% vs. 68%) are also much higher. The expected out-of-sample error is estimated less than 1%.
+
+## Results
+
+```{r}
+rfPredFinal <- predict(rfModel, testSet, type = "class")
+
+rfPredFinal
+```
